@@ -6,11 +6,11 @@
 - Persistencia: `backend/data/store.json`
 
 ## Reglas técnicas
-1. No duplicar HTML de entrada.
-2. No mezclar persistencia local del navegador para datos core (usuarios/facturas).
-3. Usar API backend para auth, usuarios, facturas.
-4. No usar `alert/confirm/prompt`; usar modal UI (`#modal-alert`).
-5. Mantener feedback sonoro de eventos críticos (ok/error).
+1. Una sola entrada HTML (`index.html`).
+2. API backend para auth/usuarios/facturas.
+3. Mantener design system dark del POS (tokens/estructura scanner-first).
+4. Feedback sonoro en eventos críticos (`beep` ok/error).
+5. No usar `alert/confirm/prompt`; usar modal UI (`#modal-alert`).
 
 ## Criterios de aceptación
 - Login super admin con `Masmela3$`.

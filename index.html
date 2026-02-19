@@ -8,81 +8,100 @@
 </head>
 <body>
   <header>
-    <div class="logo">POS<em>.pro</em></div>
-    <div class="center">
-      <span id="chip-user" class="chip">Sin sesión</span>
-      <span id="chip-plan" class="chip">Plan</span>
+    <div class="logo" id="logo-area">
+      <div class="logo-mark">🛒</div>
+      <div>
+        <div class="logo-text">POS<em>.pro</em></div>
+        <div class="logo-company" id="header-company">Mi Empresa</div>
+      </div>
     </div>
-    <div class="actions">
-      <button class="btn" id="btn-login">Iniciar sesión</button>
-      <button class="btn" id="btn-admin" hidden>Zona Admin</button>
-      <button class="btn" id="btn-logout" hidden>Salir</button>
+    <div class="header-center">
+      <span class="chip" id="chip-user">Sin sesión</span>
+      <span class="chip" id="chip-plan">Plan</span>
+      <span class="chip" id="chip-inv">0 productos</span>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-ghost" id="btn-login">Cuenta</button>
+      <button class="btn btn-ghost" id="btn-admin" hidden>Zona Admin</button>
+      <button class="btn btn-danger" id="btn-logout" hidden>Salir</button>
     </div>
   </header>
 
-  <main class="layout">
-    <section class="left card">
-      <h3>Factura</h3>
-      <div class="row2">
-        <input id="product-name" placeholder="Producto" />
-        <input id="product-price" type="number" placeholder="Precio" />
+  <div class="layout">
+    <section class="left-panel">
+      <div id="status-bar" class="status-bar waiting"><span class="dot"></span><span id="status-text">Inicia sesión para operar.</span></div>
+      <div class="scanner-wrap">
+        <span class="scanner-icon">📷</span>
+        <input id="scanner-input" type="text" placeholder="Escanea o escribe código y presiona Enter" autocomplete="off" />
       </div>
-      <div class="row2">
-        <input id="product-qty" type="number" value="1" min="1" />
-        <input id="product-disc" type="number" placeholder="% Dcto item" min="0" max="100" value="0" />
+      <div class="cart-section">
+        <table>
+          <thead><tr><th>Código</th><th>Producto</th><th>Cant</th><th>P.Unit</th><th>Dcto</th><th>Sub</th></tr></thead>
+          <tbody id="cart-body"><tr><td colspan="6" class="empty-msg"><span class="empty-icon">🧾</span>Factura vacía</td></tr></tbody>
+        </table>
       </div>
-      <button class="btn accent" id="btn-add">Agregar</button>
-      <table>
-        <thead><tr><th>Producto</th><th>Cant</th><th>P.Unit</th><th>Dcto</th><th>Sub</th></tr></thead>
-        <tbody id="cart-body"></tbody>
-      </table>
     </section>
 
-    <aside class="right card">
-      <h3>Totales</h3>
-      <label>% Dcto global</label><input id="global-disc" type="number" value="0" min="0" max="100" />
-      <label>$ Dcto fijo</label><input id="fixed-disc" type="number" value="0" min="0" />
-      <div class="line"><span>Bruto</span><b id="t-gross">$0</b></div>
-      <div class="line"><span>Dcto %</span><b id="t-disc">$0</b></div>
-      <div class="line"><span>Dcto fijo</span><b id="t-fixed">$0</b></div>
-      <div class="line"><span>Total dcto</span><b id="t-total-disc">$0</b></div>
-      <div class="line"><span>Total</span><b id="t-total">$0</b></div>
-      <button class="btn accent" id="btn-save">Confirmar venta</button>
+    <aside class="right-panel">
+      <div class="tab-content active">
+        <div class="search-wrap"><input id="quick-name" placeholder="Nombre producto rápido" /></div>
+        <div class="grid2">
+          <input id="product-code" placeholder="Código" />
+          <input id="product-price" type="number" placeholder="Precio" />
+          <input id="product-qty" type="number" min="1" value="1" />
+          <input id="product-disc" type="number" min="0" max="100" value="0" placeholder="% dcto item" />
+        </div>
+        <button class="btn btn-accent" id="btn-add">Agregar manual</button>
+        <hr class="total-divider">
+        <div class="grid2">
+          <input id="global-disc" type="number" value="0" min="0" max="100" placeholder="% dcto global" />
+          <input id="fixed-disc" type="number" value="0" min="0" placeholder="$ dcto fijo" />
+        </div>
+        <div class="total-row"><span>Bruto</span><span id="t-gross">$0</span></div>
+        <div class="total-row"><span>Dcto %</span><span id="t-disc">$0</span></div>
+        <div class="total-row"><span>Dcto fijo</span><span id="t-fixed">$0</span></div>
+        <div class="total-row"><span>Total descuento</span><span id="t-total-disc">$0</span></div>
+        <hr class="total-divider">
+        <div class="total-main"><span class="total-label-main">Total</span><span class="total-value-main" id="t-total">$0</span></div>
+        <button class="btn-pay" id="btn-save">✓ Facturar Venta</button>
+      </div>
     </aside>
-  </main>
+  </div>
 
   <div id="modal-auth" class="overlay hidden">
     <div class="modal">
-      <h3>Login</h3>
-      <p>SUPER ADMIN password: <b>Masmela3$</b></p>
-      <select id="login-mode"><option value="user">merchant/admin</option><option value="super_admin">SUPER ADMIN</option></select>
-      <input id="login-email" placeholder="Email" />
-      <input id="login-pass" type="password" placeholder="Password" />
-      <div class="modal-actions"><button class="btn" id="do-login">Entrar</button><button class="btn" id="close-auth">Cerrar</button></div>
+      <div class="modal-head"><div><div class="modal-title">Inicio de sesión</div><div class="modal-sub">SUPER ADMIN password: <b>Masmela3$</b></div></div></div>
+      <div class="modal-body">
+        <select id="login-mode" class="field-input"><option value="user">merchant/admin</option><option value="super_admin">SUPER ADMIN</option></select>
+        <input id="login-email" class="field-input" placeholder="Email" />
+        <input id="login-pass" class="field-input" type="password" placeholder="Password" />
+      </div>
+      <div class="modal-footer"><button class="btn btn-ghost" id="close-auth">Cerrar</button><button class="btn btn-accent" id="do-login">Entrar</button></div>
     </div>
   </div>
 
   <div id="modal-admin" class="overlay hidden">
-    <div class="modal big">
-      <h3>Administración</h3>
-      <div class="row2">
-        <input id="new-name" placeholder="Nombre" /><input id="new-email" placeholder="Email" />
+    <div class="modal">
+      <div class="modal-head"><div><div class="modal-title">Zona Administrador</div></div></div>
+      <div class="modal-body">
+        <div class="grid2">
+          <input id="new-name" class="field-input" placeholder="Nombre" />
+          <input id="new-email" class="field-input" placeholder="Email" />
+          <input id="new-pass" class="field-input" type="password" placeholder="Password" />
+          <select id="new-role" class="field-input"><option value="merchant">merchant</option><option value="admin">admin</option></select>
+        </div>
+        <button class="btn btn-accent" id="create-user">Crear usuario</button>
+        <div id="users-list"></div>
       </div>
-      <div class="row2">
-        <input id="new-pass" type="password" placeholder="Password" />
-        <select id="new-role"><option value="merchant">merchant</option><option value="admin">admin</option></select>
-      </div>
-      <button class="btn accent" id="create-user">Crear usuario</button>
-      <div id="users-list"></div>
-      <div class="modal-actions"><button class="btn" id="close-admin">Cerrar</button></div>
+      <div class="modal-footer"><button class="btn btn-ghost" id="close-admin">Cerrar</button></div>
     </div>
   </div>
 
   <div id="modal-alert" class="overlay hidden">
-    <div class="modal">
-      <h3 id="alert-title">Aviso</h3>
-      <p id="alert-message"></p>
-      <div class="modal-actions"><button class="btn" id="alert-ok">Entendido</button></div>
+    <div class="modal small">
+      <div class="modal-head"><div class="modal-title" id="alert-title">Aviso</div></div>
+      <div class="modal-body"><p id="alert-message"></p></div>
+      <div class="modal-footer"><button class="btn btn-ghost" id="alert-ok">Entendido</button></div>
     </div>
   </div>
 
