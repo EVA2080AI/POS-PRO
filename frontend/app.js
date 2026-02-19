@@ -6,7 +6,9 @@ const state = {
     { code:'7707203350071', name:'MCCAIN TRADICIONAL 13X13', price:18266, stock:50 },
     { code:'COS001', name:'COSTILLAS X 250 GR', price:7517, stock:20 }
   ],
-  history: []
+  history: [],
+  plans: [],
+  nequiNumber: ''
 };
 
 const $ = (s) => document.querySelector(s);
@@ -65,6 +67,12 @@ function renderHistory(){
   $('#hist-list').innerHTML = state.history.length ? state.history.slice().reverse().map(h=>`<div class='hist-item'><div class='num'>${h.id || 'Factura'}</div><div>Total: ${fmt(h.total || 0)}</div><div>${h.createdAt || ''}</div></div>`).join('') : '<div class="empty-msg">Sin ventas</div>';
 }
 
+function renderPlans() {
+  const list = $('#plans-list');
+  list.innerHTML = state.plans.map((p) => `<div class='user-card'><b>${p.name}</b><div>ID: ${p.id}</div><div>Valor: ${fmt(p.priceCop)}</div><div>Límite facturas: ${p.invoiceLimit ?? 'ilimitado'}</div></div>`).join('');
+  $('#plan-help').textContent = state.nequiNumber ? `Pagos por Nequi al ${state.nequiNumber}. Tras pagar, envía referencia para activación manual.` : 'Planes listos.';
+}
+
 function renderCart(){
   $('#cart-body').innerHTML = state.cart.length
     ? state.cart.map((i,idx)=>`<tr><td>${i.code||'-'}</td><td>${i.name}</td><td>${i.qty}</td><td>${fmt(i.price)}</td><td>${i.disc}%</td><td>${fmt(i.price*i.qty*(1-i.disc/100))}</td><td><button class='btn btn-danger btn-sm' data-rm='${idx}'>✕</button></td></tr>`).join('')
@@ -74,7 +82,8 @@ function renderCart(){
   $('#t-gross').textContent=fmt(t.gross); $('#t-disc').textContent=fmt(t.disc); $('#t-fixed').textContent=fmt(t.fixed); $('#t-total-disc').textContent=fmt(t.totalDisc); $('#t-total').textContent=fmt(t.total);
 
   $('#chip-user').textContent = state.user ? `${state.user.name} (${state.user.role})` : 'Sin sesión';
-  $('#chip-plan').textContent = state.user ? `Plan ${state.user.plan}` : 'Plan';
+  $('#chip-plan').textContent = state.user ? `Plan ${state.user.plan} (${state.user.status || 'n/a'})` : 'Plan';
+  $('#chip-trial').textContent = state.user ? `Prueba: ${state.user.trialInvoicesRemaining ?? '-'}` : 'Prueba: -';
   $('#btn-admin').hidden = !(state.user && ['admin','super_admin'].includes(state.user.role));
   $('#btn-logout').hidden = !state.user;
 
@@ -110,6 +119,15 @@ async function loadHistory(){
   catch(e){ showAlert(e.message,'Error historial'); }
 }
 
+async function loadMe(){
+  if(!state.token) return;
+  try {
+    const me = await api('/api/me');
+    state.user = me.user;
+    renderCart();
+  } catch {}
+}
+
 async function saveInvoice(){
   if(!state.token) return showAlert('Debes iniciar sesión');
   if(!state.cart.length) return showAlert('No hay items en el carrito');
@@ -121,6 +139,7 @@ async function saveInvoice(){
     beep(true);
     setStatus('Factura guardada', 'ready');
     renderCart();
+    await loadMe();
     await loadHistory();
     showAlert(`Factura creada: ${inv.id}`,'Éxito');
   }catch(e){ beep(false); showAlert(e.message,'Error'); }
@@ -135,11 +154,49 @@ function bindTabs(){
   });
 }
 
+async function loadPlans(){
+  try {
+    const data = await api('/api/plans');
+    state.plans = data.plans;
+    state.nequiNumber = data.nequiNumber;
+    renderPlans();
+  } catch (e) {
+    $('#plan-help').textContent = e.message;
+  }
+}
+
+async function loadUsers(){
+  const users = await api('/api/admin/users');
+  $('#users-list').innerHTML = users.map(u=>`<div class='user-card'><b>${u.name}</b><div>${u.email}</div><div>${u.role} | ${u.plan} | ${u.status}</div><div>Prueba restante: ${u.trialInvoicesRemaining ?? '-'}</div></div>`).join('');
+}
+
+async function loadPayments(){
+  const payments = await api('/api/admin/payments');
+  if (!payments.length) {
+    $('#payments-list').innerHTML = '<div class="empty-msg">Sin solicitudes pendientes</div>';
+    return;
+  }
+  $('#payments-list').innerHTML = payments.slice().reverse().map((p) => `<div class='user-card'><b>${p.userEmail}</b><div>${p.planId} - ${fmt(p.amountCop)}</div><div>Ref: ${p.reference}</div><div>Estado: ${p.status}</div><div><button class='btn btn-accent btn-sm' data-approve='${p.id}'>Aprobar</button> <button class='btn btn-danger btn-sm' data-reject='${p.id}'>Rechazar</button></div></div>`).join('');
+  $$('[data-approve]').forEach((btn) => btn.onclick = async () => {
+    await api(`/api/admin/payments/${btn.dataset.approve}`, 'PATCH', { status: 'approved' });
+    await loadPayments();
+    await loadUsers();
+  });
+  $$('[data-reject]').forEach((btn) => btn.onclick = async () => {
+    await api(`/api/admin/payments/${btn.dataset.reject}`, 'PATCH', { status: 'rejected' });
+    await loadPayments();
+  });
+}
+
 function bind(){
   bindTabs();
   $('#btn-login').onclick=()=>open('#modal-auth');
   $('#close-auth').onclick=()=>close('#modal-auth');
-  $('#btn-admin').onclick=async()=>{await loadUsers();open('#modal-admin');};
+  $('#btn-admin').onclick=async()=>{
+    await loadUsers();
+    await loadPayments();
+    open('#modal-admin');
+  };
   $('#close-admin').onclick=()=>close('#modal-admin');
   $('#alert-ok').onclick=()=>close('#modal-alert');
 
@@ -163,7 +220,7 @@ function bind(){
       const data=await api('/api/auth/login','POST',{roleMode:mode,email:$('#login-email').value,password:$('#login-pass').value});
       state.token=data.token; state.user=data.user; close('#modal-auth');
       beep(true); setStatus(`Bienvenido ${state.user.name}`,'ready');
-      renderCart(); await loadHistory();
+      renderCart(); await loadHistory(); await loadPlans();
     } catch(e){ beep(false); showAlert(e.message,'Error'); }
   };
 
@@ -183,16 +240,39 @@ function bind(){
   };
 
   $('#btn-save').onclick=saveInvoice;
-}
 
-async function loadUsers(){
-  const users = await api('/api/admin/users');
-  $('#users-list').innerHTML = users.map(u=>`<div class='user-card'><b>${u.name}</b><div>${u.email}</div><div>${u.role} | ${u.plan}</div></div>`).join('');
+  $('#btn-request-payment').onclick = async () => {
+    try {
+      await api('/api/payments/request', 'POST', {
+        planId: $('#pay-plan').value.trim() || 'pro',
+        reference: $('#pay-ref').value.trim(),
+        note: $('#pay-note').value.trim()
+      });
+      showAlert('Solicitud enviada. El super usuario la aprobará manualmente tras validar Nequi.', 'Pago');
+    } catch (e) {
+      showAlert(e.message, 'Error');
+    }
+  };
+
+  $('#btn-gs-import').onclick = async () => {
+    try {
+      const data = await api('/api/inventory/import-gsheets', 'POST', {
+        url: $('#gs-url').value.trim(),
+        gid: $('#gs-gid').value.trim()
+      });
+      state.inventory = data.products;
+      renderInventory();
+      setStatus(`Inventario actualizado desde Google Sheets: ${data.count} productos`, 'ready');
+    } catch (e) {
+      showAlert(e.message, 'Google Sheets');
+    }
+  };
 }
 
 bind();
 renderInventory();
 renderCart();
 renderHistory();
+loadPlans();
 open('#modal-auth');
 setStatus('Inicia sesión para operar.', 'waiting');
