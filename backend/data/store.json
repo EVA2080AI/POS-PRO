@@ -1,9 +1,9 @@
 {
   "users": [
     {
-      "id": "u-super-admin",
-      "name": "Super Administrador",
-      "email": "sebastian689@gmail.com",
+      "id": "u-sebastian-admin",
+      "name": "sebastian",
+      "email": "sebastian@pospro.local",
       "password": "Masmela3$",
       "role": "super_admin",
       "plan": "pro",
@@ -17,28 +17,12 @@
       }
     },
     {
-      "id": "u-angela-wilches",
-      "name": "Angela Wilches",
-      "email": "angela.wilches@pospro.local",
-      "password": "Angela2026*",
-      "role": "admin",
-      "plan": "pro",
-      "status": "active",
-      "trialInvoicesRemaining": 3,
-      "planExpiresAt": null,
-      "features": {
-        "advancedReports": true,
-        "multiCaja": true,
-        "autoEmail": true
-      }
-    },
-    {
-      "id": "u-sebastian-merchant",
-      "name": "SEBASTIAN",
-      "email": "sebastian@pospro.local",
+      "id": "u-angela-caja",
+      "name": "angela",
+      "email": "angela@pospro.local",
       "password": "Masmela3$",
-      "role": "merchant",
-      "plan": "trial",
+      "role": "cashier",
+      "plan": "pro",
       "status": "active",
       "trialInvoicesRemaining": 3,
       "planExpiresAt": null,
