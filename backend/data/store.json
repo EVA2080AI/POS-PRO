@@ -1,0 +1,34 @@
+{
+  "users": [
+    {
+      "id": "u-super-admin",
+      "name": "Super Administrador",
+      "email": "superadmin@pospro.local",
+      "password": "Masmela3$",
+      "role": "super_admin",
+      "plan": "pro",
+      "planExpiresAt": null,
+      "features": {
+        "advancedReports": true,
+        "multiCaja": true,
+        "autoEmail": true
+      }
+    },
+    {
+      "id": "u-angela-wilches",
+      "name": "Angela Wilches",
+      "email": "angela.wilches@pospro.local",
+      "password": "Angela2026*",
+      "role": "admin",
+      "plan": "pro",
+      "planExpiresAt": null,
+      "features": {
+        "advancedReports": true,
+        "multiCaja": true,
+        "autoEmail": true
+      }
+    }
+  ],
+  "sessions": [],
+  "invoices": []
+}
