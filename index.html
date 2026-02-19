@@ -47,7 +47,7 @@
       <div class="panel-tabs">
         <button class="tab-btn active" data-tab="pago">💳 Pago</button>
         <button class="tab-btn" data-tab="inventario">📦 Inv.</button>
-        <button class="tab-btn" data-tab="planes">🧩 Planes</button>
+        <button class="tab-btn" data-tab="planes">🧩 Planes y precios</button>
         <button class="tab-btn" data-tab="historial">📋 Historial</button>
       </div>
 
@@ -103,13 +103,13 @@
 
   <div id="modal-auth" class="overlay hidden">
     <div class="modal">
-      <div class="modal-head"><div><div class="modal-title">Inicio de sesión</div><div class="modal-sub">SUPER ADMIN: usa contraseña o email + contraseña</div></div></div>
+      <div class="modal-head"><div><div class="modal-title">Inicio de sesión</div><div class="modal-sub">Accesos activos: sebastian (admin) y angela (caja)</div></div></div>
       <div class="modal-body">
         <select id="login-mode" class="field-input"><option value="user">merchant/admin</option><option value="super_admin">SUPER ADMIN</option></select>
         <input id="login-email" class="field-input" placeholder="Email o usuario" />
         <input id="login-pass" class="field-input" type="password" placeholder="Password" />
         <label style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted2)"><input id="remember-login" type="checkbox" checked style="width:auto" />Recordar usuario y contraseña</label>
-        <div class="grid2"><button class="btn btn-ghost" id="fill-super">Autocompletar Super Usuario</button><button class="btn btn-ghost" id="fill-user">Autocompletar Usuario SEBASTIAN</button></div>
+        <div class="grid2"><button class="btn btn-ghost" id="fill-super">Autocompletar sebastian (admin)</button><button class="btn btn-ghost" id="fill-user">Autocompletar angela (caja)</button></div>
       </div>
       <div class="modal-footer"><button class="btn btn-ghost" id="close-auth">Cerrar</button><button class="btn btn-accent" id="do-login">Entrar</button></div>
     </div>
@@ -124,7 +124,7 @@
           <input id="new-name" class="field-input" placeholder="Nombre" />
           <input id="new-email" class="field-input" placeholder="Email" />
           <input id="new-pass" class="field-input" type="password" placeholder="Password" />
-          <select id="new-role" class="field-input"><option value="merchant">merchant</option><option value="admin">admin</option></select>
+          <select id="new-role" class="field-input"><option value="cashier">cashier</option><option value="admin">admin</option></select>
         </div>
         <button class="btn btn-accent" id="create-user">Crear usuario</button>
         <h4>Usuarios creados</h4>

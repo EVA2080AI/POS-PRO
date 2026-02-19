@@ -3,10 +3,10 @@
 ## Épica 1: Acceso y control del super usuario
 1. Como **super usuario**, quiero iniciar sesión con mis credenciales para entrar siempre a la zona de administración.
 2. Como **super usuario**, quiero ver la lista de usuarios creados para auditar plan, estado y prueba restante.
-3. Como **super usuario**, quiero crear usuarios (merchant/admin) para habilitar nuevas cuentas rápidamente.
+3. Como **super usuario**, quiero crear usuarios (cashier/admin) para habilitar nuevas cuentas rápidamente.
 
 ## Épica 2: Planes, pagos y activación manual
-4. Como **usuario normal**, quiero ver los planes disponibles para entender cuánto pagar y qué incluye cada plan.
+4. Como **usuario normal**, quiero ver los planes y precios disponibles para entender cuánto pagar y qué incluye cada plan.
 5. Como **usuario normal**, quiero enviar una referencia de pago Nequi para solicitar activación de plan.
 6. Como **super usuario**, quiero aprobar o rechazar solicitudes de pago para activar usuarios de manera manual y segura.
 
@@ -17,3 +17,8 @@
 ## Épica 4: Inventario conectado a Google Sheets
 9. Como **usuario operativo**, quiero importar inventario desde Google Sheets para no cargar productos manualmente.
 10. Como **dueño del negocio**, quiero que el flujo esté conectado de punta a punta (front + backend) para operar sin integraciones manuales.
+
+
+## Estado base recomendado
+- Usuarios iniciales del sistema: `sebastian` (super admin) y `angela` (cashier).
+- Ambos usuarios usan contraseña temporal `Masmela3$` para pruebas iniciales controladas.
