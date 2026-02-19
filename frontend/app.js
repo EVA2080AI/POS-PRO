@@ -81,8 +81,26 @@ async function api(path, method='GET', body){
     headers: { 'Content-Type': 'application/json', ...(state.token?{Authorization:`Bearer ${state.token}`}:{}) },
     body: body?JSON.stringify(body):undefined
   });
-  if(!res.ok) throw new Error((await res.json()).error || 'Error API');
-  return res.json();
+
+  const raw = await res.text();
+  const contentType = (res.headers.get('content-type') || '').toLowerCase();
+  const isJson = contentType.includes('application/json') || raw.trim().startsWith('{') || raw.trim().startsWith('[');
+  const data = isJson ? (() => {
+    try { return JSON.parse(raw); } catch { return null; }
+  })() : null;
+
+  if(!res.ok) {
+    const fallback = raw.trim().startsWith('<')
+      ? 'Respuesta inválida del servidor (HTML en lugar de JSON). Verifica que el backend esté corriendo en http://localhost:8080.'
+      : `Error API (${res.status})`;
+    throw new Error((data && data.error) || fallback);
+  }
+
+  if(!data) {
+    throw new Error('Respuesta inválida del servidor.');
+  }
+
+  return data;
 }
 
 function calc(){
