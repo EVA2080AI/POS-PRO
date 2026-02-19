@@ -28,3 +28,8 @@ Abrir: `http://localhost:8080`
 
 ## Documentación maestra
 - `docs/MASTER_PROMPT_POS_PRO.md`
+
+
+## Nota GitHub Pages
+- Para que cargue estilos/scripts en subruta (`/POS-PRO/`), `index.html` usa rutas relativas (`frontend/...`).
+- La API `/api/*` requiere backend Node; en Pages solo frontend estático no tendrá autenticación/facturación persistente.
