@@ -117,6 +117,27 @@ function parseCsv(text) {
   return rows;
 }
 
+
+function resolveLoginUser(db, body) {
+  const rawLogin = String(body.email || '').trim();
+  const email = rawLogin.toLowerCase();
+  const upperLogin = rawLogin.toUpperCase();
+
+  if (body.roleMode === 'super_admin') {
+    return db.users.find((u) => u.role === 'super_admin' && (
+      u.password === body.password ||
+      (email && u.email === email && u.password === body.password)
+    ));
+  }
+
+  return db.users.find((u) =>
+    u.password === body.password && (
+      u.email === email ||
+      String(u.name || '').toUpperCase() === upperLogin
+    )
+  );
+}
+
 function fetchText(url) {
   return new Promise((resolve, reject) => {
     https.get(url, (resp) => {
@@ -144,20 +165,7 @@ const server = http.createServer(async (req, res) => {
   if (req.url === '/api/auth/login' && req.method === 'POST') {
     const body = await parseBody(req);
     const db = getDb();
-    const rawLogin = String(body.email || '').trim();
-    const email = rawLogin.toLowerCase();
-    const upperLogin = rawLogin.toUpperCase();
-    let user;
-    if (body.roleMode === 'super_admin') {
-      user = db.users.find((u) => u.role === 'super_admin' && (u.password === body.password || (email && u.email === email && u.password === body.password)));
-    } else {
-      user = db.users.find((u) =>
-        u.password === body.password && (
-          u.email === email ||
-          String(u.name || '').toUpperCase() === upperLogin
-        )
-      );
-    }
+    const user = resolveLoginUser(db, body);
     if (!user) return send(res, 401, { error: 'Credenciales inválidas' });
     const t = crypto.randomBytes(16).toString('hex');
     withDb((wdb) => {
