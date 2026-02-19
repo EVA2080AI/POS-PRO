@@ -8,7 +8,8 @@ const state = {
   ],
   history: [],
   plans: [],
-  nequiNumber: ''
+  nequiNumber: '',
+  localMode: false
 };
 
 const $ = (s) => document.querySelector(s);
@@ -60,6 +61,25 @@ function open(id){$(id).classList.remove('hidden');}
 function close(id){$(id).classList.add('hidden');}
 function setStatus(msg, type='ready'){ const bar=$('#status-bar'); bar.className=`status-bar ${type}`; $('#status-text').textContent=msg; }
 function showAlert(message, title='Aviso'){ $('#alert-title').textContent=title; $('#alert-message').textContent=message; open('#modal-alert'); }
+
+function enableLocalMode(reason='') {
+  state.localMode = true;
+  if (!state.user) {
+    state.user = {
+      id: 'demo-local',
+      name: 'Demo local',
+      email: 'demo@local',
+      role: 'super_admin',
+      plan: 'pro',
+      status: 'active',
+      trialInvoicesRemaining: 999
+    };
+  }
+  close('#modal-auth');
+  renderCart();
+  const extra = reason ? ` (${reason})` : '';
+  setStatus(`Modo demo activo: puedes usar la app sin login/backend${extra}.`, 'ready');
+}
 
 function beep(ok=true){
   try{
@@ -183,6 +203,7 @@ function scanByCode(code){
 }
 
 async function loadHistory(){
+  if(state.localMode) { renderHistory(); return; }
   if(!state.token) return;
   try { state.history = await api('/api/invoices'); renderHistory(); }
   catch(e){ showAlert(e.message,'Error historial'); }
@@ -198,18 +219,26 @@ async function loadMe(){
 }
 
 async function saveInvoice(){
-  if(!state.token) return showAlert('Debes iniciar sesión');
   if(!state.cart.length) return showAlert('No hay items en el carrito');
   try{
     const t=calc();
     const payload={items:[...state.cart],gross:t.gross,disc:t.disc,fixedDisc:t.fixed,totalDisc:t.totalDisc,total:t.total};
-    const inv = await api('/api/invoices','POST',payload);
+    const inv = state.localMode || !state.token
+      ? { id: `local-${Date.now()}`, createdAt: new Date().toISOString(), ...payload }
+      : await api('/api/invoices','POST',payload);
+
+    if (state.localMode || !state.token) state.history.push(inv);
+
     state.cart=[];
     beep(true);
     setStatus('Factura guardada', 'ready');
     renderCart();
-    await loadMe();
-    await loadHistory();
+    if (!state.localMode && state.token) {
+      await loadMe();
+      await loadHistory();
+    } else {
+      renderHistory();
+    }
     showAlert(`Factura creada: ${inv.id}`,'Éxito');
   }catch(e){ beep(false); showAlert(e.message,'Error'); }
 }
@@ -270,6 +299,7 @@ function bind(){
   $('#alert-ok').onclick=()=>close('#modal-alert');
   $('#fill-super').onclick=()=>applyLoginPreset(DEFAULT_SUPER_LOGIN);
   $('#fill-user').onclick=()=>applyLoginPreset(DEFAULT_USER_LOGIN);
+  $('#btn-demo').onclick=()=>enableLocalMode();
 
   $('#btn-add').onclick=addItemFromInputs;
   $('#global-disc').oninput=renderCart; $('#fixed-disc').oninput=renderCart;
@@ -293,7 +323,11 @@ function bind(){
       state.token=data.token; state.user=data.user; close('#modal-auth');
       beep(true); setStatus(`Bienvenido ${state.user.name}`,'ready');
       renderCart(); await loadHistory(); await loadPlans();
-    } catch(e){ beep(false); showAlert(e.message,'Error'); }
+    } catch(e){
+      beep(false);
+      enableLocalMode('sin conexión de backend');
+      showAlert(`${e.message}\n\nSe activó modo demo local para que pruebes toda la aplicación sin login.`, 'Modo demo');
+    }
   };
 
   $('#btn-logout').onclick=async()=>{
@@ -346,6 +380,5 @@ renderInventory();
 renderCart();
 renderHistory();
 loadPlans();
-open('#modal-auth');
 loadRememberedLogin();
-setStatus('Inicia sesión para operar.', 'waiting');
+enableLocalMode('inicio rápido');
