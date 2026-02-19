@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>POS Pro v4 — Cuentas, Roles y Suscripciones</title>
+<style>
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--border:#1f2d45;--accent:#00e5a0;--accent2:#0ea5e9;--danger:#f43f5e;--warn:#f59e0b;--text:#e2e8f0;--muted:#64748b;--mono:'Courier New',monospace}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui;background:var(--bg);color:var(--text)}
+header{height:56px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 14px;gap:8px}
+.logo{font-weight:800}.logo em{color:var(--accent);font-style:normal}.row{display:flex;gap:8px;align-items:center}
+.chip{font-size:11px;padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface2);color:var(--muted)}.chip.ok{color:var(--accent)}.chip.warn{color:var(--warn)}
+.btn{border:1px solid var(--border);background:var(--surface2);color:var(--text);padding:7px 10px;border-radius:8px;cursor:pointer;font-weight:700;font-size:12px}.btn:hover{border-color:var(--accent2)}.btn.accent{background:var(--accent);color:#00120c;border-color:var(--accent)}.btn.danger{color:var(--danger)}
+.layout{display:grid;grid-template-columns:1fr 360px;height:calc(100vh - 56px)}
+.panel{padding:12px;overflow:auto}.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px}
+.status{font-size:12px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:rgba(14,165,233,.07);margin-bottom:10px}
+input,select{width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text)}
+table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid var(--border);font-size:12px}th{color:var(--muted);text-align:left}
+.totals .line{display:flex;justify-content:space-between;font-size:12px;padding:3px 0}.totals .main{font-size:24px;font-family:var(--mono);font-weight:700}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}.overlay.show{display:flex}
+.modal{width:min(760px,96vw);max-height:94vh;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:14px}
+.modal h3{margin:0 0 8px}.modal .head,.modal .body,.modal .foot{padding:14px}.modal .head{border-bottom:1px solid var(--border)}.modal .foot{border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.mono{font-family:var(--mono)} .muted{color:var(--muted);font-size:12px}
+.feature{display:flex;justify-content:space-between;align-items:center;background:var(--surface2);border:1px solid var(--border);padding:8px;border-radius:8px;margin-bottom:6px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">POS<em>.pro</em> v4</div>
+  <div class="row">
+    <span id="chip-plan" class="chip">PLAN</span>
+    <span id="chip-exp" class="chip">VENCE</span>
+    <span id="chip-user" class="chip">USUARIO</span>
+  </div>
+  <div class="row">
+    <button class="btn" onclick="openAuth()">Cuenta</button>
+    <button class="btn" id="btn-admin" onclick="openAdmin()" style="display:none">Zona Admin</button>
+  </div>
+</header>
+<div class="layout">
+  <section class="panel">
+    <div class="status" id="status">Esperando inventario o carga manual.</div>
+    <div class="card">
+      <h3>Carrito</h3>
+      <table>
+        <thead><tr><th>Código</th><th>Producto</th><th>Cant.</th><th>P.Unit</th><th>Dcto %</th><th>Sub</th></tr></thead>
+        <tbody id="cart-body"></tbody>
+      </table>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" onclick="seedDemo()">Cargar demo</button>
+        <button class="btn danger" onclick="clearCart()">Cancelar factura</button>
+      </div>
+    </div>
+  </section>
+  <aside class="panel">
+    <div class="card totals">
+      <h3>Pago</h3>
+      <div class="grid">
+        <div><label class="muted">% Dcto Global</label><input id="disc-global" type="number" min="0" max="100" value="0" oninput="renderCart()"></div>
+        <div><label class="muted">$ Dcto Fijo</label><input id="disc-fixed" type="number" min="0" value="0" oninput="renderCart()"></div>
+      </div>
+      <div class="line"><span>Bruto</span><b id="gross">$0</b></div>
+      <div class="line"><span>Dcto %</span><b id="disc-pct">$0</b></div>
+      <div class="line"><span>Dcto fijo</span><b id="disc-fix">$0</b></div>
+      <div class="line"><span>Total descuento</span><b id="disc-total">$0</b></div>
+      <div class="line"><span>IVA</span><b id="iva">$0</b></div>
+      <div class="line" style="margin-top:8px"><span>Total</span><span class="main" id="total">$0</span></div>
+      <button class="btn accent" style="width:100%;margin-top:8px" onclick="confirmPay()">Confirmar venta</button>
+    </div>
+    <div class="card" style="margin-top:10px">
+      <h3>Features según plan</h3>
+      <div id="feature-list"></div>
+    </div>
+  </aside>
+</div>
+
+<div class="overlay" id="auth-overlay">
+  <div class="modal">
+    <div class="head"><h3>Inicio de sesión</h3><div class="muted">Selecciona rol y autentícate. Para SUPER ADMIN usa contraseña: <b>Masmela3$</b></div></div>
+    <div class="body grid">
+      <div>
+        <h4>Crear cuenta de usuario</h4>
+        <input id="reg-name" placeholder="Nombre completo" />
+        <input id="reg-email" placeholder="Email" style="margin-top:6px" />
+        <input id="reg-pass" type="password" placeholder="Contraseña" style="margin-top:6px" />
+        <select id="reg-role" style="margin-top:6px">
+          <option value="merchant">merchant</option>
+          <option value="admin">admin</option>
+        </select>
+        <button class="btn accent" style="margin-top:8px" onclick="registerUser()">Crear usuario</button>
+      </div>
+      <div>
+        <h4>Iniciar sesión</h4>
+        <select id="login-role">
+          <option value="merchant">merchant/admin</option>
+          <option value="super_admin">SUPER ADMIN</option>
+        </select>
+        <input id="login-email" placeholder="Email (excepto super admin)" style="margin-top:6px" />
+        <input id="login-pass" type="password" placeholder="Contraseña" style="margin-top:6px" />
+        <button class="btn" style="margin-top:8px" onclick="loginUser()">Entrar</button>
+      </div>
+    </div>
+    <div class="foot"><button class="btn" onclick="closeModal('auth-overlay')">Cerrar</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="admin-overlay">
+  <div class="modal">
+    <div class="head"><h3>Zona Administrador</h3><div class="muted">Gestión de usuarios, plan y permisos de funcionalidades pagas.</div></div>
+    <div class="body">
+      <div class="row" style="justify-content:space-between"><h4>Usuarios</h4><button class="btn" onclick="renderUsers()">Recargar</button></div>
+      <div class="card" style="margin-bottom:10px">
+        <h4>Crear usuario desde Admin</h4>
+        <div class="grid">
+          <input id="admin-new-name" placeholder="Nombre" />
+          <input id="admin-new-email" placeholder="Email" />
+          <input id="admin-new-pass" placeholder="Contraseña" type="password" />
+          <select id="admin-new-role"><option value="merchant">merchant</option><option value="admin">admin</option></select>
+        </div>
+        <button class="btn accent" style="margin-top:8px" onclick="adminCreateUser()">Crear usuario</button>
+      </div>
+      <div id="user-list"></div>
+    </div>
+    <div class="foot"><button class="btn" onclick="closeModal('admin-overlay')">Cerrar</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="alert-overlay">
+  <div class="modal" style="width:min(460px,96vw)">
+    <div class="head"><h3 id="alert-title">Aviso</h3></div>
+    <div class="body"><div id="alert-msg"></div></div>
+    <div class="foot" id="alert-foot"></div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEYS={users:'posUsersV4',session:'posSessionV4'};
+const FEATURES={
+  basicSale:{label:'Venta básica',free:true},
+  excelImport:{label:'Importar Excel/Sheets',free:true},
+  advancedReports:{label:'Reportes avanzados',free:false},
+  multiCaja:{label:'Multi caja/usuarios',free:false},
+  autoEmail:{label:'Email automático',free:false}
+};
+
+let cart=[];
+
+function fmt(n){return `$${Math.round(n).toLocaleString('es-CO')}`}
+function openModal(id){document.getElementById(id).classList.add('show')}
+function closeModal(id){document.getElementById(id).classList.remove('show')}
+
+function showAlert(type,msg,cb){
+  const title=type==='confirm'?'Confirmación':type==='error'?'Error':'Información';
+  document.getElementById('alert-title').textContent=title;
+  document.getElementById('alert-msg').textContent=msg;
+  const foot=document.getElementById('alert-foot');
+  foot.innerHTML='';
+  if(type==='confirm'){
+    const no=document.createElement('button');no.className='btn';no.textContent='Cancelar';no.onclick=()=>closeModal('alert-overlay');
+    const yes=document.createElement('button');yes.className='btn accent';yes.textContent='Aceptar';yes.onclick=()=>{closeModal('alert-overlay');if(cb)cb(true)};
+    foot.append(no,yes);
+  }else{
+    const ok=document.createElement('button');ok.className='btn';ok.textContent='Entendido';ok.onclick=()=>closeModal('alert-overlay');
+    foot.append(ok);
+  }
+  openModal('alert-overlay');
+}
+
+function getUsers(){try{return JSON.parse(localStorage.getItem(STORAGE_KEYS.users)||'[]')}catch{return[]}}
+function saveUsers(users){localStorage.setItem(STORAGE_KEYS.users,JSON.stringify(users))}
+function getSession(){try{return JSON.parse(localStorage.getItem(STORAGE_KEYS.session)||'null')}catch{return null}}
+function setSession(s){localStorage.setItem(STORAGE_KEYS.session,JSON.stringify(s))}
+
+function ensureSeedAdmin(){
+  const users=getUsers();
+  if(!users.some(u=>u.role==='super_admin')){
+    users.push({id:crypto.randomUUID(),name:'Super Administrador',email:'superadmin@pospro.local',pass:'Masmela3$',role:'super_admin',plan:'pro',planExpiresAt:null,featureOverrides:{}});
+    users.push({id:crypto.randomUUID(),name:'Angela Wilches',email:'angela.wilches@pospro.local',pass:'Angela2026*',role:'admin',plan:'pro',planExpiresAt:addDays(30),featureOverrides:{}});
+    saveUsers(users);
+  }
+}
+
+function nowTs(){return Date.now()}
+function addDays(days){return nowTs()+days*24*3600*1000}
+
+function canUsePlan(user){
+  if(!user) return false;
+  if(user.plan==='pro' && user.planExpiresAt && nowTs()>user.planExpiresAt) return false;
+  return true;
+}
+function hasFeature(key){
+  const s=getSession(); if(!s) return false;
+  const users=getUsers(); const user=users.find(u=>u.id===s.userId); if(!user) return false;
+  if(!canUsePlan(user)) return false;
+  if(user.featureOverrides && typeof user.featureOverrides[key]==='boolean') return user.featureOverrides[key];
+  if(user.plan==='pro') return true;
+  return FEATURES[key]?.free===true;
+}
+
+function registerUser(){
+  const name=document.getElementById('reg-name').value.trim();
+  const email=document.getElementById('reg-email').value.trim().toLowerCase();
+  const pass=document.getElementById('reg-pass').value;
+  if(!name||!email||pass.length<6)return showAlert('error','Completa nombre/email y contraseña >= 6 caracteres.');
+  const users=getUsers(); if(users.some(u=>u.email===email))return showAlert('error','Ese email ya está registrado.');
+  const role=document.getElementById('reg-role').value||'merchant';
+  users.push({id:crypto.randomUUID(),name,email,pass,role,plan:'free',planExpiresAt:null,featureOverrides:{}});
+  saveUsers(users); showAlert('info','Cuenta creada en plan FREE. Inicia sesión.');
+}
+
+function loginUser(){
+  const roleSel=document.getElementById('login-role').value;
+  const email=document.getElementById('login-email').value.trim().toLowerCase();
+  const pass=document.getElementById('login-pass').value;
+
+  let user=null;
+  if(roleSel==='super_admin'){
+    user=getUsers().find(u=>u.role==='super_admin' && u.pass===pass);
+    if(!user) return showAlert('error','Contraseña SUPER ADMIN incorrecta.');
+  }else{
+    user=getUsers().find(u=>u.email===email && u.pass===pass && (u.role==='merchant' || u.role==='admin'));
+    if(!user) return showAlert('error','Credenciales inválidas para merchant/admin.');
+  }
+
+  setSession({userId:user.id,loginAt:nowTs()});
+  applySessionUI(); closeModal('auth-overlay'); showAlert('info',`Bienvenido, ${user.name}.`);
+}
+
+function applySessionUI(){
+  const s=getSession(); const users=getUsers(); const user=s?users.find(u=>u.id===s.userId):null;
+  const planChip=document.getElementById('chip-plan'); const expChip=document.getElementById('chip-exp'); const userChip=document.getElementById('chip-user');
+  if(!user){planChip.textContent='SIN SESIÓN';planChip.className='chip warn';expChip.textContent='-';userChip.textContent='Invitado';document.getElementById('btn-admin').style.display='none';renderFeatures();return;}
+  planChip.textContent=`PLAN ${user.plan.toUpperCase()}`;planChip.className='chip ok';
+  expChip.textContent=user.planExpiresAt?`Vence: ${new Date(user.planExpiresAt).toLocaleDateString('es-CO')}`:'Sin vencimiento';
+  expChip.className='chip';
+  userChip.textContent=`${user.name} (${user.role})`;userChip.className='chip';
+  document.getElementById('btn-admin').style.display=(user.role==='super_admin'||user.role==='admin')?'inline-block':'none';
+  renderFeatures();
+}
+
+function renderFeatures(){
+  const wrap=document.getElementById('feature-list');
+  wrap.innerHTML=Object.entries(FEATURES).map(([k,f])=>{
+    const ok=hasFeature(k);
+    return `<div class="feature"><span>${f.label}</span><span class="chip ${ok?'ok':'warn'}">${ok?'Habilitada':'Bloqueada'}</span></div>`;
+  }).join('');
+}
+
+function openAuth(){openModal('auth-overlay')}
+function openAdmin(){renderUsers();openModal('admin-overlay')}
+
+function renderUsers(){
+  const s=getSession(); const curr=getUsers().find(u=>u.id===s?.userId);
+  if(!curr || !['super_admin','admin'].includes(curr.role)){closeModal('admin-overlay'); return showAlert('error','No tienes permisos de administración.');}
+  const list=document.getElementById('user-list');
+  const users=getUsers();
+  list.innerHTML=users.map(u=>`<div class="card" style="margin-bottom:8px">
+    <div class="row" style="justify-content:space-between"><b>${u.name}</b><span class="muted mono">${u.email}</span></div>
+    <div class="grid" style="margin-top:8px">
+      <div><label class="muted">Rol</label><select onchange="setRole('${u.id}',this.value)"><option ${u.role==='merchant'?'selected':''} value="merchant">merchant</option><option ${u.role==='admin'?'selected':''} value="admin">admin</option><option ${u.role==='super_admin'?'selected':''} value="super_admin">super_admin</option></select></div>
+      <div><label class="muted">Plan</label><select onchange="setPlan('${u.id}',this.value)"><option ${u.plan==='free'?'selected':''} value="free">free</option><option ${u.plan==='pro'?'selected':''} value="pro">pro</option></select></div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn" onclick="extendPlan('${u.id}',30)">+30 días PRO</button>
+      <button class="btn danger" onclick="disablePlan('${u.id}')">Vencer PRO ahora</button>
+    </div>
+    <div style="margin-top:8px">${Object.entries(FEATURES).map(([k,f])=>`<label style='display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px'><span>${f.label}</span><input type='checkbox' ${u.featureOverrides?.[k]===true?'checked':''} onchange="toggleFeature('${u.id}','${k}',this.checked)"></label>`).join('')}</div>
+  </div>`).join('');
+}
+
+function adminCreateUser(){
+  const s=getSession(); const curr=getUsers().find(u=>u.id===s?.userId);
+  if(!curr || !['super_admin','admin'].includes(curr.role)) return showAlert('error','Solo admin puede crear usuarios.');
+  const name=document.getElementById('admin-new-name').value.trim();
+  const email=document.getElementById('admin-new-email').value.trim().toLowerCase();
+  const pass=document.getElementById('admin-new-pass').value;
+  const role=document.getElementById('admin-new-role').value;
+  if(!name||!email||pass.length<6) return showAlert('error','Completa datos y contraseña >= 6.');
+  const users=getUsers();
+  if(users.some(u=>u.email===email)) return showAlert('error','Ese email ya existe.');
+  users.push({id:crypto.randomUUID(),name,email,pass,role,plan:'free',planExpiresAt:null,featureOverrides:{}});
+  saveUsers(users); renderUsers(); showAlert('info','Usuario creado correctamente.');
+}
+
+function mutateUser(id,fn){const users=getUsers();const idx=users.findIndex(u=>u.id===id);if(idx<0)return;fn(users[idx]);saveUsers(users);applySessionUI();renderUsers()}
+function setRole(id,role){mutateUser(id,u=>u.role=role)}
+function setPlan(id,plan){mutateUser(id,u=>{u.plan=plan;if(plan==='pro'&&!u.planExpiresAt)u.planExpiresAt=addDays(30);if(plan==='free')u.planExpiresAt=null;})}
+function extendPlan(id,days){mutateUser(id,u=>{u.plan='pro';u.planExpiresAt=Math.max(u.planExpiresAt||0,nowTs())+days*24*3600*1000;})}
+function disablePlan(id){mutateUser(id,u=>{u.plan='pro';u.planExpiresAt=nowTs()-1000;})}
+function toggleFeature(id,key,val){mutateUser(id,u=>{u.featureOverrides=u.featureOverrides||{};u.featureOverrides[key]=val})}
+
+function calcTotals(){
+  const gross=cart.reduce((a,i)=>a+i.price*i.qty,0);
+  const globalPct=Math.max(0,Math.min(100,Number(document.getElementById('disc-global').value)||0));
+  const pctDiscItems=cart.reduce((a,i)=>a+(i.price*i.qty*((Number(i.disc)||0)/100)),0);
+  const globalPctDisc=(gross-pctDiscItems)*(globalPct/100);
+  const fixed=Math.max(0,Number(document.getElementById('disc-fixed').value)||0);
+  const disc=Math.min(gross,pctDiscItems+globalPctDisc);
+  const totalDisc=Math.min(gross,disc+fixed);
+  const net=Math.max(0,gross-totalDisc);
+  const subtotal=net/1.19;
+  const iva=net-subtotal;
+  return {gross,disc:Math.round(disc),fixedDisc:Math.round(fixed),totalDisc:Math.round(totalDisc),total:Math.round(net),subtotal:Math.round(subtotal),iva:Math.round(iva)};
+}
+
+function renderCart(){
+  const body=document.getElementById('cart-body');
+  if(!cart.length){body.innerHTML='<tr><td colspan="6" class="muted">Factura vacía</td></tr>'}else{
+    body.innerHTML=cart.map((i,idx)=>`<tr><td>${i.code}</td><td>${i.name}</td><td>${i.qty}</td><td>${fmt(i.price)}</td><td><input type='number' min='0' max='100' value='${i.disc||0}' oninput='setItemDisc(${idx},this.value)'></td><td>${fmt(i.price*i.qty*(1-(i.disc||0)/100))}</td></tr>`).join('');
+  }
+  const t=calcTotals();
+  document.getElementById('gross').textContent=fmt(t.gross);
+  document.getElementById('disc-pct').textContent=fmt(t.disc);
+  document.getElementById('disc-fix').textContent=fmt(t.fixedDisc);
+  document.getElementById('disc-total').textContent=fmt(t.totalDisc);
+  document.getElementById('iva').textContent=fmt(t.iva);
+  document.getElementById('total').textContent=fmt(t.total);
+}
+function setItemDisc(idx,val){cart[idx].disc=Math.max(0,Math.min(100,Number(val)||0));renderCart()}
+function seedDemo(){cart=[{code:'7707203350071',name:'MCCAIN TRADICIONAL',qty:2,price:18266,disc:0},{code:'COS001',name:'COSTILLAS X 250 GR',qty:1,price:7517,disc:10}];document.getElementById('status').textContent='Demo cargada. Aplica descuentos y confirma venta.';renderCart()}
+function clearCart(){if(!cart.length)return;showAlert('confirm','¿Cancelar la factura actual?',()=>{cart=[];renderCart()})}
+
+function confirmPay(){
+  if(!cart.length)return showAlert('error','No hay ítems en la factura.');
+  if(!hasFeature('basicSale'))return showAlert('error','Tu plan no permite facturar. Contacta administración.');
+  const t=calcTotals();
+  const inv={num:`FV${String(Math.floor(Math.random()*99999)).padStart(5,'0')}`,date:new Date().toLocaleString('es-CO'),items:cart.map(i=>({...i})),gross:t.gross,disc:t.disc,fixedDisc:t.fixedDisc,totalDisc:t.totalDisc,subtotal:t.subtotal,iva:t.iva,total:t.total,status:'activa'};
+  console.log('Invoice',inv);
+  showAlert('info',`Venta confirmada: ${inv.num} por ${fmt(inv.total)}. totalDisc=${fmt(inv.totalDisc)}`);
+  cart=[];renderCart();
+}
+
+ensureSeedAdmin();
+applySessionUI();
+renderCart();
+if(!getSession()) openAuth();
+</script>
+</body>
+</html>
