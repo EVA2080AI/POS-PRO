@@ -27,7 +27,8 @@ Abrir: `http://localhost:8080`
 - Planes y precios visibles para todos (`trial`, `free`, `pro`)
 - Solicitud de activación manual por referencia de pago (Nequi)
 - Facturación limitada por prueba mínima para usuarios nuevos
-- Importación de inventario desde Google Sheets vía backend
+- Generación de PDF imprimible desde historial o última factura
+- Importación de inventario desde Google Sheets vía backend (acepta link pegado del usuario en el MVP)
 - Historial de facturas conectado al backend
 
 ## API nueva/relevante
