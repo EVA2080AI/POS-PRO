@@ -19,6 +19,7 @@
       <span class="chip" id="chip-user">Sin sesión</span>
       <span class="chip" id="chip-plan">Plan</span>
       <span class="chip" id="chip-inv">0 productos</span>
+      <span class="chip" id="chip-trial">Prueba: 0</span>
     </div>
     <div class="header-right">
       <button class="btn btn-ghost" id="btn-login">Cuenta</button>
@@ -46,6 +47,7 @@
       <div class="panel-tabs">
         <button class="tab-btn active" data-tab="pago">💳 Pago</button>
         <button class="tab-btn" data-tab="inventario">📦 Inv.</button>
+        <button class="tab-btn" data-tab="planes">🧩 Planes</button>
         <button class="tab-btn" data-tab="historial">📋 Historial</button>
       </div>
 
@@ -73,7 +75,23 @@
         </div>
         <button class="btn btn-accent" id="btn-add">Agregar al carrito</button>
         <div class="search-wrap"><input id="inv-search" placeholder="Buscar inventario" /></div>
+        <div class="grid2">
+          <input id="gs-url" placeholder="URL Google Sheets" />
+          <input id="gs-gid" placeholder="gid opcional" />
+        </div>
+        <button class="btn btn-ghost" id="btn-gs-import">Importar Google Sheets</button>
         <div id="inv-list" class="inv-list"></div>
+      </div>
+
+      <div class="tab-content" id="tab-planes">
+        <div id="plans-list"></div>
+        <div class="grid2">
+          <input id="pay-plan" placeholder="plan (trial/free/pro)" />
+          <input id="pay-ref" placeholder="Referencia pago Nequi" />
+        </div>
+        <input id="pay-note" placeholder="Nota opcional" />
+        <button class="btn btn-accent" id="btn-request-payment">Solicitar activación manual</button>
+        <div id="plan-help" class="empty-msg">Cargando planes...</div>
       </div>
 
       <div class="tab-content" id="tab-historial">
@@ -85,7 +103,7 @@
 
   <div id="modal-auth" class="overlay hidden">
     <div class="modal">
-      <div class="modal-head"><div><div class="modal-title">Inicio de sesión</div><div class="modal-sub">SUPER ADMIN password: <b>Masmela3$</b></div></div></div>
+      <div class="modal-head"><div><div class="modal-title">Inicio de sesión</div><div class="modal-sub">SUPER ADMIN: usa contraseña o email + contraseña</div></div></div>
       <div class="modal-body">
         <select id="login-mode" class="field-input"><option value="user">merchant/admin</option><option value="super_admin">SUPER ADMIN</option></select>
         <input id="login-email" class="field-input" placeholder="Email" />
@@ -97,8 +115,9 @@
 
   <div id="modal-admin" class="overlay hidden">
     <div class="modal">
-      <div class="modal-head"><div><div class="modal-title">Zona Administrador</div></div></div>
+      <div class="modal-head"><div><div class="modal-title">Zona Super Usuario</div></div></div>
       <div class="modal-body">
+        <h4>Crear usuario</h4>
         <div class="grid2">
           <input id="new-name" class="field-input" placeholder="Nombre" />
           <input id="new-email" class="field-input" placeholder="Email" />
@@ -106,7 +125,10 @@
           <select id="new-role" class="field-input"><option value="merchant">merchant</option><option value="admin">admin</option></select>
         </div>
         <button class="btn btn-accent" id="create-user">Crear usuario</button>
+        <h4>Usuarios creados</h4>
         <div id="users-list"></div>
+        <h4>Solicitudes de pago</h4>
+        <div id="payments-list"></div>
       </div>
       <div class="modal-footer"><button class="btn btn-ghost" id="close-admin">Cerrar</button></div>
     </div>

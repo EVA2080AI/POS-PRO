@@ -7,6 +7,8 @@
       "password": "Masmela3$",
       "role": "super_admin",
       "plan": "pro",
+      "status": "active",
+      "trialInvoicesRemaining": 3,
       "planExpiresAt": null,
       "features": {
         "advancedReports": true,
@@ -21,6 +23,8 @@
       "password": "Angela2026*",
       "role": "admin",
       "plan": "pro",
+      "status": "active",
+      "trialInvoicesRemaining": 3,
       "planExpiresAt": null,
       "features": {
         "advancedReports": true,
@@ -30,5 +34,6 @@
     }
   ],
   "sessions": [],
-  "invoices": []
+  "invoices": [],
+  "payments": []
 }
