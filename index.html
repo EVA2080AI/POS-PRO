@@ -36,23 +36,20 @@
       </div>
       <div class="cart-section">
         <table>
-          <thead><tr><th>Código</th><th>Producto</th><th>Cant</th><th>P.Unit</th><th>Dcto</th><th>Sub</th></tr></thead>
-          <tbody id="cart-body"><tr><td colspan="6" class="empty-msg"><span class="empty-icon">🧾</span>Factura vacía</td></tr></tbody>
+          <thead><tr><th>Código</th><th>Producto</th><th>Cant</th><th>P.Unit</th><th>Dcto</th><th>Sub</th><th></th></tr></thead>
+          <tbody id="cart-body"><tr><td colspan="7" class="empty-msg"><span class="empty-icon">🧾</span>Factura vacía</td></tr></tbody>
         </table>
       </div>
     </section>
 
     <aside class="right-panel">
-      <div class="tab-content active">
-        <div class="search-wrap"><input id="quick-name" placeholder="Nombre producto rápido" /></div>
-        <div class="grid2">
-          <input id="product-code" placeholder="Código" />
-          <input id="product-price" type="number" placeholder="Precio" />
-          <input id="product-qty" type="number" min="1" value="1" />
-          <input id="product-disc" type="number" min="0" max="100" value="0" placeholder="% dcto item" />
-        </div>
-        <button class="btn btn-accent" id="btn-add">Agregar manual</button>
-        <hr class="total-divider">
+      <div class="panel-tabs">
+        <button class="tab-btn active" data-tab="pago">💳 Pago</button>
+        <button class="tab-btn" data-tab="inventario">📦 Inv.</button>
+        <button class="tab-btn" data-tab="historial">📋 Historial</button>
+      </div>
+
+      <div class="tab-content active" id="tab-pago">
         <div class="grid2">
           <input id="global-disc" type="number" value="0" min="0" max="100" placeholder="% dcto global" />
           <input id="fixed-disc" type="number" value="0" min="0" placeholder="$ dcto fijo" />
@@ -64,6 +61,24 @@
         <hr class="total-divider">
         <div class="total-main"><span class="total-label-main">Total</span><span class="total-value-main" id="t-total">$0</span></div>
         <button class="btn-pay" id="btn-save">✓ Facturar Venta</button>
+      </div>
+
+      <div class="tab-content" id="tab-inventario">
+        <div class="grid2">
+          <input id="product-code" placeholder="Código" />
+          <input id="product-price" type="number" placeholder="Precio" />
+          <input id="quick-name" placeholder="Nombre" />
+          <input id="product-qty" type="number" min="1" value="1" />
+          <input id="product-disc" type="number" min="0" max="100" value="0" placeholder="% dcto item" />
+        </div>
+        <button class="btn btn-accent" id="btn-add">Agregar al carrito</button>
+        <div class="search-wrap"><input id="inv-search" placeholder="Buscar inventario" /></div>
+        <div id="inv-list" class="inv-list"></div>
+      </div>
+
+      <div class="tab-content" id="tab-historial">
+        <button class="btn btn-ghost" id="btn-refresh-history">Actualizar</button>
+        <div id="hist-list"></div>
       </div>
     </aside>
   </div>
