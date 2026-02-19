@@ -1,17 +1,23 @@
-# POS Pro — Reestructura Fullstack
+# POS Pro
 
-## Estructura
-- `frontend/`: UI principal
-- `backend/`: API Express + store JSON
-- `index.html`: entrada deployable (misma UI de frontend)
+## Fuente única de frontend
+- `index.html` (entrypoint)
+- `frontend/styles.css`
+- `frontend/app.js`
 
-## Run
+## Backend
+- `backend/src/server.js`
+- `backend/data/store.json`
+
+## Ejecutar
 ```bash
-npm install
 npm start
 ```
 Abrir: `http://localhost:8080`
 
 ## Credenciales seed
-- SUPER ADMIN: password `Masmela3$`
-- Usuario admin prueba: `angela.wilches@pospro.local` / `Angela2026*`
+- Super Admin: `Masmela3$`
+- Admin prueba: `angela.wilches@pospro.local` / `Angela2026*`
+
+## Documentación maestra
+- `docs/MASTER_PROMPT_POS_PRO.md`

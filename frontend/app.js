@@ -2,8 +2,24 @@ const state = { token: null, user: null, cart: [] };
 
 const $ = (s) => document.querySelector(s);
 const fmt = (n) => `$${Math.round(n).toLocaleString('es-CO')}`;
+let audioCtx;
 
-function open(id){$(id).classList.remove('hidden')} function close(id){$(id).classList.add('hidden')}
+function open(id){$(id).classList.remove('hidden');}
+function close(id){$(id).classList.add('hidden');}
+function showAlert(message, title='Aviso'){ $('#alert-title').textContent=title; $('#alert-message').textContent=message; open('#modal-alert'); }
+
+function beep(ok=true){
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = ok ? 'sine' : 'square';
+    osc.frequency.value = ok ? 880 : 200;
+    g.gain.value = ok ? 0.06 : 0.1;
+    osc.connect(g); g.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + (ok ? 0.07 : 0.15));
+  } catch {}
+}
 
 async function api(path, method='GET', body){
   const res = await fetch(path, { method, headers: { 'Content-Type': 'application/json', ...(state.token?{Authorization:`Bearer ${state.token}`}:{}) }, body: body?JSON.stringify(body):undefined });
@@ -33,26 +49,42 @@ function render(){
 }
 
 function bind(){
-  $('#btn-login').onclick=()=>open('#modal-auth'); $('#close-auth').onclick=()=>close('#modal-auth');
-  $('#btn-admin').onclick=async()=>{await loadUsers();open('#modal-admin')}; $('#close-admin').onclick=()=>close('#modal-admin');
-  $('#btn-add').onclick=()=>{const n=$('#product-name').value.trim();const p=Number($('#product-price').value);const q=Number($('#product-qty').value)||1;const d=Number($('#product-disc').value)||0; if(!n||!p)return; state.cart.push({name:n,price:p,qty:q,disc:d}); render();};
+  $('#btn-login').onclick=()=>open('#modal-auth');
+  $('#close-auth').onclick=()=>close('#modal-auth');
+  $('#btn-admin').onclick=async()=>{await loadUsers();open('#modal-admin');};
+  $('#close-admin').onclick=()=>close('#modal-admin');
+  $('#alert-ok').onclick=()=>close('#modal-alert');
+
+  $('#btn-add').onclick=()=>{
+    const n=$('#product-name').value.trim();const p=Number($('#product-price').value);const q=Number($('#product-qty').value)||1;const d=Number($('#product-disc').value)||0;
+    if(!n||!p){beep(false); return showAlert('Ingresa producto y precio');}
+    state.cart.push({name:n,price:p,qty:q,disc:d});
+    beep(true);
+    render();
+  };
+
   $('#global-disc').oninput=render; $('#fixed-disc').oninput=render;
 
   $('#do-login').onclick=async()=>{
     try {
       const mode=$('#login-mode').value;
       const data=await api('/api/auth/login','POST',{roleMode:mode,email:$('#login-email').value,password:$('#login-pass').value});
-      state.token=data.token; state.user=data.user; close('#modal-auth'); render();
-    } catch(e){ alert(e.message); }
+      state.token=data.token; state.user=data.user; close('#modal-auth'); beep(true); showAlert(`Bienvenido ${state.user.name}`,'Login exitoso'); render();
+    } catch(e){ beep(false); showAlert(e.message,'Error'); }
   };
 
-  $('#btn-logout').onclick=async()=>{ if(state.token) await api('/api/auth/logout','POST'); state.token=null; state.user=null; render(); };
+  $('#btn-logout').onclick=async()=>{
+    try { if(state.token) await api('/api/auth/logout','POST'); } catch {}
+    state.token=null; state.user=null; showAlert('Sesión cerrada'); render();
+  };
 
   $('#create-user').onclick=async()=>{
     try {
       await api('/api/admin/users','POST',{name:$('#new-name').value,email:$('#new-email').value,password:$('#new-pass').value,role:$('#new-role').value});
       await loadUsers();
-    } catch(e){ alert(e.message); }
+      beep(true);
+      showAlert('Usuario creado correctamente','Admin');
+    } catch(e){ beep(false); showAlert(e.message,'Error'); }
   };
 
   $('#btn-save').onclick=async()=>{
@@ -60,9 +92,12 @@ function bind(){
       const t=calc();
       const payload={items:[...state.cart],gross:t.gross,disc:t.disc,fixedDisc:t.fixed,totalDisc:t.totalDisc,total:t.total};
       await api('/api/invoices','POST',payload);
-      state.cart=[];render();alert('Factura guardada');
-    }catch(e){alert(e.message)}
-  }
+      state.cart=[];
+      beep(true);
+      render();
+      showAlert('Factura guardada');
+    }catch(e){ beep(false); showAlert(e.message,'Error'); }
+  };
 }
 
 async function loadUsers(){

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>POS Pro — Fullstack</title>
-  <link rel="stylesheet" href="/styles.css" />
+  <title>POS Pro — Sistema de Facturación</title>
+  <link rel="stylesheet" href="/frontend/styles.css" />
 </head>
 <body>
   <header>
@@ -78,6 +78,14 @@
     </div>
   </div>
 
-  <script src="/app.js"></script>
+  <div id="modal-alert" class="overlay hidden">
+    <div class="modal">
+      <h3 id="alert-title">Aviso</h3>
+      <p id="alert-message"></p>
+      <div class="modal-actions"><button class="btn" id="alert-ok">Entendido</button></div>
+    </div>
+  </div>
+
+  <script src="/frontend/app.js"></script>
 </body>
 </html>

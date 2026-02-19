@@ -6,7 +6,6 @@ const { readDb, withDb } = require('./store');
 
 const PORT = process.env.PORT || 8080;
 const ROOT = path.join(__dirname, '..', '..');
-const FRONT = path.join(ROOT, 'frontend');
 
 const PLAN_FEATURES = {
   free: { basicSale: true, excelImport: true, advancedReports: false, multiCaja: false, autoEmail: false },
@@ -44,8 +43,8 @@ function sanitizeUser(user){ const { password, ...safe } = user; return safe; }
 
 function serveStatic(req, res) {
   const urlPath = req.url === '/' ? '/index.html' : req.url;
-  const file = path.join(FRONT, urlPath);
-  if (!file.startsWith(FRONT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) return false;
+  const file = path.join(ROOT, decodeURIComponent(urlPath));
+  if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) return false;
   const ext = path.extname(file);
   res.writeHead(200, { 'Content-Type': mime[ext] || 'application/octet-stream' });
   fs.createReadStream(file).pipe(res);
@@ -55,7 +54,6 @@ function serveStatic(req, res) {
 const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') return send(res, 204, '', { 'Access-Control-Allow-Methods': 'GET,POST,PATCH,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type,Authorization' });
 
-  // API
   if (req.url === '/api/health' && req.method === 'GET') return send(res, 200, { ok: true });
 
   if (req.url === '/api/auth/login' && req.method === 'POST') {
