@@ -239,7 +239,6 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.url === '/api/inventory/import-gsheets' && req.method === 'POST') {
-    const user = auth(req); if (!user) return send(res, 401, { error: 'No autorizado' });
     const body = await parseBody(req);
     const sheetUrl = String(body.url || '').trim();
     const sheetMatch = sheetUrl.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
