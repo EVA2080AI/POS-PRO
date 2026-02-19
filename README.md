@@ -16,20 +16,28 @@ npm start
 Abrir: `http://localhost:8080`
 
 ## Credenciales seed
-- Super Admin: `Masmela3$`
+- Super Admin: `sebastian689@gmail.com` / `Masmela3$` (también permite modo super admin con password)
 - Admin prueba: `angela.wilches@pospro.local` / `Angela2026*`
+- Usuario operación: `SEBASTIAN` (o `sebastian@pospro.local`) / `Masmela3$`
 
-## Bloque implementado en esta iteración
-- Tabs operativas: Pago / Inventario / Historial
-- Scanner por código (Enter) con beep ok/error
-- Carrito con remoción de ítems y descuentos
-- Historial cargado desde backend (`/api/invoices`)
-- Modal unificado de alertas (sin alert/confirm/prompt)
+## Funcionalidades clave
+- Zona de super usuario para:
+  - Crear usuarios
+  - Ver usuarios creados, plan, estado y prueba mínima restante
+  - Aprobar/Rechazar solicitudes de pago
+- Planes visibles para todos (`trial`, `free`, `pro`)
+- Solicitud de activación manual por referencia de pago (Nequi)
+- Facturación limitada por prueba mínima para usuarios nuevos
+- Importación de inventario desde Google Sheets vía backend
+- Historial de facturas conectado al backend
 
-## Documentación maestra
-- `docs/MASTER_PROMPT_POS_PRO.md`
+## API nueva/relevante
+- `GET /api/plans`
+- `POST /api/inventory/import-gsheets`
+- `POST /api/payments/request`
+- `GET /api/admin/payments`
+- `PATCH /api/admin/payments/:id`
 
-
-## Nota GitHub Pages
-- Para que cargue estilos/scripts en subruta (`/POS-PRO/`), `index.html` usa rutas relativas (`frontend/...`).
-- La API `/api/*` requiere backend Node; en Pages solo frontend estático no tendrá autenticación/facturación persistente.
+## Documentación de producto
+- `docs/historias-usuario-superadmin.md`
+- `docs/master-prompt-ejecucion-pos-pro.md`
