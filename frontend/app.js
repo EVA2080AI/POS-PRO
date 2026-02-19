@@ -16,6 +16,46 @@ const $$ = (s) => Array.from(document.querySelectorAll(s));
 const fmt = (n) => `$${Math.round(n).toLocaleString('es-CO')}`;
 let audioCtx;
 
+const DEFAULT_SUPER_LOGIN = { mode: 'super_admin', email: 'sebastian689@gmail.com', password: 'Masmela3$' };
+const DEFAULT_USER_LOGIN = { mode: 'user', email: 'SEBASTIAN', password: 'Masmela3$' };
+const LOGIN_STORAGE_KEY = 'posRememberLogin';
+
+function applyLoginPreset(data) {
+  $('#login-mode').value = data.mode;
+  $('#login-email').value = data.email;
+  $('#login-pass').value = data.password;
+}
+
+function loadRememberedLogin() {
+  const raw = localStorage.getItem(LOGIN_STORAGE_KEY);
+  if (!raw) {
+    applyLoginPreset(DEFAULT_SUPER_LOGIN);
+    $('#remember-login').checked = true;
+    return;
+  }
+  try {
+    const data = JSON.parse(raw);
+    if (data?.email && data?.password && data?.mode) {
+      applyLoginPreset(data);
+      $('#remember-login').checked = true;
+      return;
+    }
+  } catch {}
+  applyLoginPreset(DEFAULT_SUPER_LOGIN);
+}
+
+function persistLoginIfNeeded() {
+  if (!$('#remember-login').checked) {
+    localStorage.removeItem(LOGIN_STORAGE_KEY);
+    return;
+  }
+  localStorage.setItem(LOGIN_STORAGE_KEY, JSON.stringify({
+    mode: $('#login-mode').value,
+    email: $('#login-email').value,
+    password: $('#login-pass').value
+  }));
+}
+
 function open(id){$(id).classList.remove('hidden');}
 function close(id){$(id).classList.add('hidden');}
 function setStatus(msg, type='ready'){ const bar=$('#status-bar'); bar.className=`status-bar ${type}`; $('#status-text').textContent=msg; }
@@ -199,6 +239,8 @@ function bind(){
   };
   $('#close-admin').onclick=()=>close('#modal-admin');
   $('#alert-ok').onclick=()=>close('#modal-alert');
+  $('#fill-super').onclick=()=>applyLoginPreset(DEFAULT_SUPER_LOGIN);
+  $('#fill-user').onclick=()=>applyLoginPreset(DEFAULT_USER_LOGIN);
 
   $('#btn-add').onclick=addItemFromInputs;
   $('#global-disc').oninput=renderCart; $('#fixed-disc').oninput=renderCart;
@@ -217,6 +259,7 @@ function bind(){
   $('#do-login').onclick=async()=>{
     try {
       const mode=$('#login-mode').value;
+      persistLoginIfNeeded();
       const data=await api('/api/auth/login','POST',{roleMode:mode,email:$('#login-email').value,password:$('#login-pass').value});
       state.token=data.token; state.user=data.user; close('#modal-auth');
       beep(true); setStatus(`Bienvenido ${state.user.name}`,'ready');
@@ -275,4 +318,5 @@ renderCart();
 renderHistory();
 loadPlans();
 open('#modal-auth');
+loadRememberedLogin();
 setStatus('Inicia sesión para operar.', 'waiting');

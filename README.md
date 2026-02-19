@@ -18,6 +18,7 @@ Abrir: `http://localhost:8080`
 ## Credenciales seed
 - Super Admin: `sebastian689@gmail.com` / `Masmela3$` (también permite modo super admin con password)
 - Admin prueba: `angela.wilches@pospro.local` / `Angela2026*`
+- Usuario operación: `SEBASTIAN` (o `sebastian@pospro.local`) / `Masmela3$`
 
 ## Funcionalidades clave
 - Zona de super usuario para:

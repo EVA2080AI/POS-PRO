@@ -117,6 +117,26 @@ function parseCsv(text) {
   return rows;
 }
 
+// Función consolidada para manejar login
+function resolveLoginUser(db, body) {
+  const rawLogin = String(body.email || '').trim();
+  const email = rawLogin.toLowerCase();
+  const upperLogin = rawLogin.toUpperCase();
+
+  if (body.roleMode === 'super_admin') {
+    return db.users.find((u) => u.role === 'super_admin' && (
+      u.password === body.password && (u.email === email || !email)
+    ));
+  }
+
+  return db.users.find((u) =>
+    u.password === body.password && (
+      u.email === email ||
+      String(u.name || '').toUpperCase() === upperLogin
+    )
+  );
+}
+
 function fetchText(url) {
   return new Promise((resolve, reject) => {
     https.get(url, (resp) => {
@@ -144,13 +164,8 @@ const server = http.createServer(async (req, res) => {
   if (req.url === '/api/auth/login' && req.method === 'POST') {
     const body = await parseBody(req);
     const db = getDb();
-    const email = String(body.email || '').toLowerCase();
-    let user;
-    if (body.roleMode === 'super_admin') {
-      user = db.users.find((u) => u.role === 'super_admin' && (u.password === body.password || (email && u.email === email && u.password === body.password)));
-    } else {
-      user = db.users.find((u) => u.email === email && u.password === body.password);
-    }
+    const user = resolveLoginUser(db, body);
+    
     if (!user) return send(res, 401, { error: 'Credenciales inválidas' });
     const t = crypto.randomBytes(16).toString('hex');
     withDb((wdb) => {
@@ -161,6 +176,7 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, { token: t, user: sanitizeUser(user) });
   }
 
+  // ... (El resto del código se mantiene igual pero sin marcas de conflicto)
   if (req.url === '/api/auth/logout' && req.method === 'POST') {
     const authz = req.headers.authorization || '';
     const t = authz.startsWith('Bearer ') ? authz.slice(7) : null;
@@ -215,7 +231,7 @@ const server = http.createServer(async (req, res) => {
           plan:body.plan || 'trial',
           status: body.status || 'pending_activation',
           planExpiresAt:null,
-          trialInvoicesRemaining: body.plan === 'pro' ? TRIAL_INVOICES : TRIAL_INVOICES,
+          trialInvoicesRemaining: TRIAL_INVOICES,
           features:{}
         };
         db.users.push(u);

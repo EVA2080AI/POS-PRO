@@ -31,6 +31,18 @@
         "multiCaja": true,
         "autoEmail": true
       }
+    },
+    {
+      "id": "u-sebastian-merchant",
+      "name": "SEBASTIAN",
+      "email": "sebastian@pospro.local",
+      "password": "Masmela3$",
+      "role": "merchant",
+      "plan": "trial",
+      "status": "active",
+      "trialInvoicesRemaining": 3,
+      "planExpiresAt": null,
+      "features": {}
     }
   ],
   "sessions": [],
