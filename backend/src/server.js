@@ -10,6 +10,33 @@ const ROOT = path.join(__dirname, '..', '..');
 const NEQUI_NUMBER = process.env.NEQUI_NUMBER || '3001234567';
 const TRIAL_INVOICES = 3;
 
+const DEFAULT_USERS = [
+  {
+    id: 'u-sebastian-admin',
+    name: 'sebastian',
+    email: 'sebastian@pospro.local',
+    password: 'Masmela3$',
+    role: 'super_admin',
+    plan: 'pro',
+    status: 'active',
+    trialInvoicesRemaining: TRIAL_INVOICES,
+    planExpiresAt: null,
+    features: { advancedReports: true, multiCaja: true, autoEmail: true }
+  },
+  {
+    id: 'u-angela-caja',
+    name: 'angela',
+    email: 'angela@pospro.local',
+    password: 'Masmela3$',
+    role: 'cashier',
+    plan: 'pro',
+    status: 'active',
+    trialInvoicesRemaining: TRIAL_INVOICES,
+    planExpiresAt: null,
+    features: {}
+  }
+];
+
 const PLAN_FEATURES = {
   trial: { basicSale: true, excelImport: true, advancedReports: false, multiCaja: false, autoEmail: false },
   free: { basicSale: true, excelImport: true, advancedReports: false, multiCaja: false, autoEmail: false },
@@ -25,10 +52,23 @@ const PLANS = [
 const mime = { '.html':'text/html; charset=utf-8', '.css':'text/css', '.js':'application/javascript', '.json':'application/json' };
 
 function ensureDbShape(db) {
-  db.users ||= [];
+  db.users = Array.isArray(db.users) ? db.users : [];
   db.sessions ||= [];
   db.invoices ||= [];
   db.payments ||= [];
+  if (!db.users.length) {
+    db.users = DEFAULT_USERS.map((u) => ({ ...u, features: { ...(u.features || {}) } }));
+  }
+
+  db.users = db.users
+    .map((u) => ({
+      ...u,
+      name: String(u.name || '').trim() || String(u.email || '').split('@')[0] || 'usuario',
+      email: String(u.email || '').trim().toLowerCase(),
+      role: u.role === 'merchant' ? 'cashier' : (u.role || 'cashier')
+    }))
+    .filter((u, idx, arr) => u.email && arr.findIndex((other) => other.email === u.email) === idx);
+
   db.users.forEach((u) => {
     if (u.status === undefined) u.status = u.role === 'super_admin' ? 'active' : 'pending_activation';
     if (u.plan === undefined) u.plan = 'trial';
@@ -73,6 +113,10 @@ function sanitizeUser(user){ const { password, ...safe } = user; return safe; }
 
 function isActiveUser(user) {
   return user.role === 'super_admin' || user.status === 'active';
+}
+
+function canManageUsers(user) {
+  return ['admin', 'super_admin'].includes(user.role);
 }
 
 function serveStatic(req, res) {
@@ -125,7 +169,11 @@ function resolveLoginUser(db, body) {
 
   if (body.roleMode === 'super_admin') {
     return db.users.find((u) => u.role === 'super_admin' && (
-      u.password === body.password && (u.email === email || !email)
+      u.password === body.password && (
+        u.email === email ||
+        String(u.name || '').toLowerCase() === email ||
+        !email
+      )
     ));
   }
 
@@ -209,13 +257,13 @@ const server = http.createServer(async (req, res) => {
 
   if (req.url === '/api/admin/users' && req.method === 'GET') {
     const user = auth(req); if (!user) return send(res, 401, { error: 'No autorizado' });
-    if (!['admin','super_admin'].includes(user.role)) return send(res, 403, { error: 'Permisos insuficientes' });
+    if (!canManageUsers(user)) return send(res, 403, { error: 'Permisos insuficientes' });
     return send(res, 200, getDb().users.map(sanitizeUser));
   }
 
   if (req.url === '/api/admin/users' && req.method === 'POST') {
     const user = auth(req); if (!user) return send(res, 401, { error: 'No autorizado' });
-    if (!['admin','super_admin'].includes(user.role)) return send(res, 403, { error: 'Permisos insuficientes' });
+    if (!canManageUsers(user)) return send(res, 403, { error: 'Permisos insuficientes' });
     const body = await parseBody(req);
     if (!body.name || !body.email || !body.password) return send(res, 400, { error: 'Datos incompletos' });
     try {
@@ -245,7 +293,7 @@ const server = http.createServer(async (req, res) => {
 
   if (req.url.startsWith('/api/admin/users/') && req.method === 'PATCH') {
     const user = auth(req); if (!user) return send(res, 401, { error: 'No autorizado' });
-    if (!['admin','super_admin'].includes(user.role)) return send(res, 403, { error: 'Permisos insuficientes' });
+    if (!canManageUsers(user)) return send(res, 403, { error: 'Permisos insuficientes' });
     const id = req.url.split('/').pop();
     const body = await parseBody(req);
     const updated = withDb((db) => {
@@ -294,13 +342,13 @@ const server = http.createServer(async (req, res) => {
 
   if (req.url === '/api/admin/payments' && req.method === 'GET') {
     const user = auth(req); if (!user) return send(res, 401, { error: 'No autorizado' });
-    if (!['admin','super_admin'].includes(user.role)) return send(res, 403, { error: 'Permisos insuficientes' });
+    if (!canManageUsers(user)) return send(res, 403, { error: 'Permisos insuficientes' });
     return send(res, 200, getDb().payments || []);
   }
 
   if (req.url.startsWith('/api/admin/payments/') && req.method === 'PATCH') {
     const user = auth(req); if (!user) return send(res, 401, { error: 'No autorizado' });
-    if (!['admin','super_admin'].includes(user.role)) return send(res, 403, { error: 'Permisos insuficientes' });
+    if (!canManageUsers(user)) return send(res, 403, { error: 'Permisos insuficientes' });
     const id = req.url.split('/').pop();
     const body = await parseBody(req);
     const updated = withDb((db) => {
@@ -359,6 +407,10 @@ const server = http.createServer(async (req, res) => {
 
   if (serveStatic(req, res)) return;
   send(res, 404, { error: 'Not found' });
+});
+
+withDb((db) => {
+  ensureDbShape(db);
 });
 
 server.listen(PORT, () => console.log(`POS Pro backend running on http://localhost:${PORT}`));

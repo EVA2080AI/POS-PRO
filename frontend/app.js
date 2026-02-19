@@ -8,7 +8,8 @@ const state = {
   ],
   history: [],
   plans: [],
-  nequiNumber: ''
+  nequiNumber: '',
+  localMode: false
 };
 
 const $ = (s) => document.querySelector(s);
@@ -16,8 +17,8 @@ const $$ = (s) => Array.from(document.querySelectorAll(s));
 const fmt = (n) => `$${Math.round(n).toLocaleString('es-CO')}`;
 let audioCtx;
 
-const DEFAULT_SUPER_LOGIN = { mode: 'super_admin', email: 'sebastian689@gmail.com', password: 'Masmela3$' };
-const DEFAULT_USER_LOGIN = { mode: 'user', email: 'SEBASTIAN', password: 'Masmela3$' };
+const DEFAULT_SUPER_LOGIN = { mode: 'super_admin', email: 'sebastian', password: 'Masmela3$' };
+const DEFAULT_USER_LOGIN = { mode: 'user', email: 'angela', password: 'Masmela3$' };
 const LOGIN_STORAGE_KEY = 'posRememberLogin';
 
 function applyLoginPreset(data) {
@@ -61,6 +62,25 @@ function close(id){$(id).classList.add('hidden');}
 function setStatus(msg, type='ready'){ const bar=$('#status-bar'); bar.className=`status-bar ${type}`; $('#status-text').textContent=msg; }
 function showAlert(message, title='Aviso'){ $('#alert-title').textContent=title; $('#alert-message').textContent=message; open('#modal-alert'); }
 
+function enableLocalMode(reason='') {
+  state.localMode = true;
+  if (!state.user) {
+    state.user = {
+      id: 'demo-local',
+      name: 'Demo local',
+      email: 'demo@local',
+      role: 'super_admin',
+      plan: 'pro',
+      status: 'active',
+      trialInvoicesRemaining: 999
+    };
+  }
+  close('#modal-auth');
+  renderCart();
+  const extra = reason ? ` (${reason})` : '';
+  setStatus(`Modo demo activo: puedes usar la app sin login/backend${extra}.`, 'ready');
+}
+
 function beep(ok=true){
   try{
     if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -81,8 +101,26 @@ async function api(path, method='GET', body){
     headers: { 'Content-Type': 'application/json', ...(state.token?{Authorization:`Bearer ${state.token}`}:{}) },
     body: body?JSON.stringify(body):undefined
   });
-  if(!res.ok) throw new Error((await res.json()).error || 'Error API');
-  return res.json();
+
+  const raw = await res.text();
+  const contentType = (res.headers.get('content-type') || '').toLowerCase();
+  const isJson = contentType.includes('application/json') || raw.trim().startsWith('{') || raw.trim().startsWith('[');
+  const data = isJson ? (() => {
+    try { return JSON.parse(raw); } catch { return null; }
+  })() : null;
+
+  if(!res.ok) {
+    const fallback = raw.trim().startsWith('<')
+      ? 'Respuesta inválida del servidor (HTML en lugar de JSON). Verifica que el backend esté corriendo en http://localhost:8080.'
+      : `Error API (${res.status})`;
+    throw new Error((data && data.error) || fallback);
+  }
+
+  if(!data) {
+    throw new Error('Respuesta inválida del servidor.');
+  }
+
+  return data;
 }
 
 function calc(){
@@ -109,8 +147,19 @@ function renderHistory(){
 
 function renderPlans() {
   const list = $('#plans-list');
-  list.innerHTML = state.plans.map((p) => `<div class='user-card'><b>${p.name}</b><div>ID: ${p.id}</div><div>Valor: ${fmt(p.priceCop)}</div><div>Límite facturas: ${p.invoiceLimit ?? 'ilimitado'}</div></div>`).join('');
-  $('#plan-help').textContent = state.nequiNumber ? `Pagos por Nequi al ${state.nequiNumber}. Tras pagar, envía referencia para activación manual.` : 'Planes listos.';
+  const order = { trial: 0, free: 1, pro: 2 };
+  const rows = state.plans.slice().sort((a, b) => (order[a.id] ?? 99) - (order[b.id] ?? 99));
+  list.innerHTML = rows.map((p) => `
+    <div class='user-card'>
+      <b>${p.name}</b>
+      <div><small>Plan: ${p.id.toUpperCase()}</small></div>
+      <div><strong>${fmt(p.priceCop)}</strong> / ${p.billing}</div>
+      <div>Límite de facturas: ${p.invoiceLimit ?? 'ilimitado'}</div>
+    </div>
+  `).join('');
+  $('#plan-help').textContent = state.nequiNumber
+    ? `Pagos por Nequi al ${state.nequiNumber}. Después del pago, registra la referencia para activar el plan.`
+    : 'Planes cargados correctamente.';
 }
 
 function renderCart(){
@@ -154,6 +203,7 @@ function scanByCode(code){
 }
 
 async function loadHistory(){
+  if(state.localMode) { renderHistory(); return; }
   if(!state.token) return;
   try { state.history = await api('/api/invoices'); renderHistory(); }
   catch(e){ showAlert(e.message,'Error historial'); }
@@ -169,18 +219,26 @@ async function loadMe(){
 }
 
 async function saveInvoice(){
-  if(!state.token) return showAlert('Debes iniciar sesión');
   if(!state.cart.length) return showAlert('No hay items en el carrito');
   try{
     const t=calc();
     const payload={items:[...state.cart],gross:t.gross,disc:t.disc,fixedDisc:t.fixed,totalDisc:t.totalDisc,total:t.total};
-    const inv = await api('/api/invoices','POST',payload);
+    const inv = state.localMode || !state.token
+      ? { id: `local-${Date.now()}`, createdAt: new Date().toISOString(), ...payload }
+      : await api('/api/invoices','POST',payload);
+
+    if (state.localMode || !state.token) state.history.push(inv);
+
     state.cart=[];
     beep(true);
     setStatus('Factura guardada', 'ready');
     renderCart();
-    await loadMe();
-    await loadHistory();
+    if (!state.localMode && state.token) {
+      await loadMe();
+      await loadHistory();
+    } else {
+      renderHistory();
+    }
     showAlert(`Factura creada: ${inv.id}`,'Éxito');
   }catch(e){ beep(false); showAlert(e.message,'Error'); }
 }
@@ -241,6 +299,7 @@ function bind(){
   $('#alert-ok').onclick=()=>close('#modal-alert');
   $('#fill-super').onclick=()=>applyLoginPreset(DEFAULT_SUPER_LOGIN);
   $('#fill-user').onclick=()=>applyLoginPreset(DEFAULT_USER_LOGIN);
+  $('#btn-demo').onclick=()=>enableLocalMode();
 
   $('#btn-add').onclick=addItemFromInputs;
   $('#global-disc').oninput=renderCart; $('#fixed-disc').oninput=renderCart;
@@ -264,7 +323,11 @@ function bind(){
       state.token=data.token; state.user=data.user; close('#modal-auth');
       beep(true); setStatus(`Bienvenido ${state.user.name}`,'ready');
       renderCart(); await loadHistory(); await loadPlans();
-    } catch(e){ beep(false); showAlert(e.message,'Error'); }
+    } catch(e){
+      beep(false);
+      enableLocalMode('sin conexión de backend');
+      showAlert(`${e.message}\n\nSe activó modo demo local para que pruebes toda la aplicación sin login.`, 'Modo demo');
+    }
   };
 
   $('#btn-logout').onclick=async()=>{
@@ -317,6 +380,5 @@ renderInventory();
 renderCart();
 renderHistory();
 loadPlans();
-open('#modal-auth');
 loadRememberedLogin();
-setStatus('Inicia sesión para operar.', 'waiting');
+enableLocalMode('inicio rápido');
