@@ -16,8 +16,8 @@ const $$ = (s) => Array.from(document.querySelectorAll(s));
 const fmt = (n) => `$${Math.round(n).toLocaleString('es-CO')}`;
 let audioCtx;
 
-const DEFAULT_SUPER_LOGIN = { mode: 'super_admin', email: 'sebastian689@gmail.com', password: 'Masmela3$' };
-const DEFAULT_USER_LOGIN = { mode: 'user', email: 'SEBASTIAN', password: 'Masmela3$' };
+const DEFAULT_SUPER_LOGIN = { mode: 'super_admin', email: 'sebastian', password: 'Masmela3$' };
+const DEFAULT_USER_LOGIN = { mode: 'user', email: 'angela', password: 'Masmela3$' };
 const LOGIN_STORAGE_KEY = 'posRememberLogin';
 
 function applyLoginPreset(data) {
@@ -109,8 +109,19 @@ function renderHistory(){
 
 function renderPlans() {
   const list = $('#plans-list');
-  list.innerHTML = state.plans.map((p) => `<div class='user-card'><b>${p.name}</b><div>ID: ${p.id}</div><div>Valor: ${fmt(p.priceCop)}</div><div>Límite facturas: ${p.invoiceLimit ?? 'ilimitado'}</div></div>`).join('');
-  $('#plan-help').textContent = state.nequiNumber ? `Pagos por Nequi al ${state.nequiNumber}. Tras pagar, envía referencia para activación manual.` : 'Planes listos.';
+  const order = { trial: 0, free: 1, pro: 2 };
+  const rows = state.plans.slice().sort((a, b) => (order[a.id] ?? 99) - (order[b.id] ?? 99));
+  list.innerHTML = rows.map((p) => `
+    <div class='user-card'>
+      <b>${p.name}</b>
+      <div><small>Plan: ${p.id.toUpperCase()}</small></div>
+      <div><strong>${fmt(p.priceCop)}</strong> / ${p.billing}</div>
+      <div>Límite de facturas: ${p.invoiceLimit ?? 'ilimitado'}</div>
+    </div>
+  `).join('');
+  $('#plan-help').textContent = state.nequiNumber
+    ? `Pagos por Nequi al ${state.nequiNumber}. Después del pago, registra la referencia para activar el plan.`
+    : 'Planes cargados correctamente.';
 }
 
 function renderCart(){
