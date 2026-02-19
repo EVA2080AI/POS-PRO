@@ -95,8 +95,55 @@ async function api(path, method = 'GET', body) {
   const data = isJson ? (() => { try { return JSON.parse(raw); } catch { return null; } })() : null;
 
   if (!res.ok) throw new Error((data && data.error) || `Error API (${res.status})`);
-  if (!data) throw new Error('Respuesta inválida del servidor.');
+  if (!data) {
+    if (raw.trim().startsWith('<') || contentType.includes('text/html')) {
+      throw new Error('No se encontró el backend de la API. Esta función requiere un servidor activo.');
+    }
+    throw new Error('Respuesta inválida del servidor.');
+  }
   return data;
+}
+
+function parseCsvProducts(text) {
+  const lines = String(text || '').split(/\r?\n/).filter((l) => l.trim());
+  if (!lines.length) return [];
+  const split = (line) => {
+    const out = []; let cur = ''; let quoted = false;
+    for (let i = 0; i < line.length; i += 1) {
+      const c = line[i];
+      if (c === '"') { if (quoted && line[i + 1] === '"') { cur += '"'; i += 1; } else quoted = !quoted; }
+      else if (c === ',' && !quoted) { out.push(cur.trim()); cur = ''; }
+      else cur += c;
+    }
+    out.push(cur.trim());
+    return out;
+  };
+
+  const headers = split(lines[0]).map((h) => h.toUpperCase().replace(/\s+/g, ''));
+  const products = [];
+  for (let i = 1; i < lines.length; i += 1) {
+    const cols = split(lines[i]);
+    const row = {};
+    headers.forEach((h, idx) => { row[h] = cols[idx] || ''; });
+    const code = row.CÓDIGO || row.CODIGO || row.COD || row.EAN || row.REFERENCIA || '';
+    const name = row.PRODUCTO || row.NOMBRE || row.DESCRIPCION || row.DESCRIPCIÓN || '';
+    const priceRaw = row.PRECIOCONIVA || row.PRECIO || row.VALOR || '0';
+    const stockRaw = row.STOCK || '';
+    const price = Number(String(priceRaw).replace(/[$.\s]/g, '').replace(',', '.')) || 0;
+    const stock = stockRaw === '' ? null : Number(stockRaw) || null;
+    if (code && name && price > 0) products.push({ code, name, price, stock });
+  }
+  return products;
+}
+
+async function importFromGoogleSheetsDirect(sheetId, gid) {
+  const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+  const res = await fetch(csvUrl);
+  if (!res.ok) throw new Error(`No se pudo descargar la hoja (${res.status}). Revisa permisos de compartir.`);
+  const csvText = await res.text();
+  const products = parseCsvProducts(csvText);
+  if (!products.length) throw new Error('La hoja no trae productos válidos (columnas sugeridas: código, nombre, precio, stock).');
+  return { products, count: products.length };
 }
 
 function calc() {
@@ -225,10 +272,17 @@ async function importFromGoogleSheets() {
   const gid = $('#gs-gid').value.trim() || parsed.gid;
   if (!parsed.id) return showAlert('Pega un enlace válido de Google Sheets.');
   $('#gs-gid').value = gid;
-  const data = await api('/api/inventory/import-gsheets', 'POST', {
-    url: parsed.clean,
-    gid
-  });
+  let data;
+  try {
+    data = await api('/api/inventory/import-gsheets', 'POST', {
+      url: parsed.clean,
+      gid
+    });
+  } catch (e) {
+    const backendUnavailable = /backend de la API|Error API \(404\)|Failed to fetch/i.test(String(e.message || ''));
+    if (!backendUnavailable) throw e;
+    data = await importFromGoogleSheetsDirect(parsed.id, gid);
+  }
   state.inventory = data.products;
   renderInventory();
   setStatus(`Inventario actualizado desde Google Sheets (${data.count} productos)`, 'ready');
